@@ -25,15 +25,17 @@ jobs:
           X_ACCESS_SECRET: ${{ secrets.X_ACCESS_SECRET }}
           PARENT_TWEET_ID: ${{ secrets.PARENT_TWEET_ID }}
           REPLIES_FILE: "replies.txt"
+          POST_PER_RUN: "20"
           MAX_REPLIES_PER_THREAD: "20"
-          POST_PER_RUN: "1"
           MIN_GAP_MINUTES: "0"
           MIN_GAP_SECONDS: "0"
-          GAP_JITTER_SECONDS: "5"
+          GAP_JITTER_SECONDS: "0"
           CHUNK_DELAY_MIN_SECONDS: "3"
           CHUNK_DELAY_MAX_SECONDS: "5"
-          MAX_TWEETS_PER_DAY: "30"
-          HOURS_ACTIVE: "00-15"
+          BLOCK_DELAY_MIN_SECONDS: "3"
+          BLOCK_DELAY_MAX_SECONDS: "5"
+          MAX_TWEETS_PER_DAY: "80"
+          HOURS_ACTIVE: ""
           DRY_RUN: "0"
         run: python bot.py
       - name: Persist state (.state)
