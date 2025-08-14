@@ -1,0 +1,51 @@
+name: x-thread-bot-rapid-seconds
+
+on:
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -r requirements.txt
+      - name: Run bot (Rapid 3–5s cadence)
+        env:
+          X_API_KEY: ${{ secrets.X_API_KEY }}
+          X_API_SECRET: ${{ secrets.X_API_SECRET }}
+          X_ACCESS_TOKEN: ${{ secrets.X_ACCESS_TOKEN }}
+          X_ACCESS_SECRET: ${{ secrets.X_ACCESS_SECRET }}
+          PARENT_TWEET_ID: ${{ secrets.PARENT_TWEET_ID }}
+          REPLIES_FILE: "replies.txt"
+          POST_PER_RUN: "20"
+          MAX_REPLIES_PER_THREAD: "20"
+          MIN_GAP_MINUTES: "0"
+          MIN_GAP_SECONDS: "0"
+          GAP_JITTER_SECONDS: "0"
+          CHUNK_DELAY_MIN_SECONDS: "3"
+          CHUNK_DELAY_MAX_SECONDS: "5"
+          BLOCK_DELAY_MIN_SECONDS: "3"
+          BLOCK_DELAY_MAX_SECONDS: "5"
+          MAX_TWEETS_PER_DAY: "80"
+          HOURS_ACTIVE: ""
+          DRY_RUN: "0"
+        run: python bot.py
+      - name: Persist state (.state)
+        run: |
+          if [ -n "$(git status --porcelain .state || true)" ]; then
+            git config user.name "x-thread-bot"
+            git config user.email "actions@users.noreply.github.com"
+            git add .state || true
+            git commit -m "Update bot state [rapid seconds] [skip ci]" || true
+            git push || true
+          else:
+            echo "No state changes to commit."
+          fi

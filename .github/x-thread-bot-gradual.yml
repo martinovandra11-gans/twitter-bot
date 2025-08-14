@@ -1,0 +1,75 @@
+name: x-thread-bot-gradual
+
+on:
+  schedule:
+    - cron: "*/20 * * * *"   # setiap 20 menit (ubah ke 30 jika mau lebih santai)
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # Jitter kecil agar eksekusi tidak selalu di detik yang sama
+      - name: Random jitter (0-120s)
+        run: python - <<'PY'
+import random, time
+s = random.randint(0, 120)
+print(f"Sleeping {s}s for jitter...")
+time.sleep(s)
+PY
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -r requirements.txt
+      - name: Run bot (Gradual, No Start-Hour)
+        env:
+          X_API_KEY: ${{ secrets.X_API_KEY }}
+          X_API_SECRET: ${{ secrets.X_API_SECRET }}
+          X_ACCESS_TOKEN: ${{ secrets.X_ACCESS_TOKEN }}
+          X_ACCESS_SECRET: ${{ secrets.X_ACCESS_SECRET }}
+
+          # Target thread
+          PARENT_TWEET_ID: ${{ secrets.PARENT_TWEET_ID }}
+          REPLIES_FILE: "replies.txt"
+
+          # Ritme bertahap, 1 blok per run
+          POST_PER_RUN: "1"
+          MAX_REPLIES_PER_THREAD: "20"
+
+          # Gap aman (20 menit) + jitter di level scheduler (0-120s di atas)
+          MIN_GAP_MINUTES: "20"
+          MIN_GAP_SECONDS: "0"
+          GAP_JITTER_SECONDS: "0"   # tidak perlu di level bot karena kita sudah jitter di workflow
+
+          # Delay antar-chunk (kalau teks >280 char terbelah)
+          CHUNK_DELAY_MIN_SECONDS: "15"
+          CHUNK_DELAY_MAX_SECONDS: "45"
+
+          # Tanpa jam mulai: kosongkan HOURS_ACTIVE → selalu aktif
+          HOURS_ACTIVE: ""
+
+          # Buffer agar aman kalau ada chunk
+          MAX_TWEETS_PER_DAY: "30"
+
+          DRY_RUN: "0"
+        run: python bot.py
+
+      - name: Persist state (.state)
+        run: |
+          if [ -n "$(git status --porcelain .state || true)" ]; then
+            git config user.name "x-thread-bot"
+            git config user.email "actions@users.noreply.github.com"
+            git add .state || true
+            git commit -m "Update bot state [gradual] [skip ci]" || true
+            git push || true
+          else:
+            echo "No state changes to commit."
+          fi

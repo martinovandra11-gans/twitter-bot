@@ -1,0 +1,61 @@
+name: x-thread-bot
+
+on:
+  schedule:
+    - cron: "*/20 * * * *"   # tiap 30 menit (aman). Ubah sesuai kebutuhan.
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -r requirements.txt
+      - name: Run bot
+        env:
+          X_API_KEY: ${{ secrets.X_API_KEY }}
+          X_API_SECRET: ${{ secrets.X_API_SECRET }}
+          X_ACCESS_TOKEN: ${{ secrets.X_ACCESS_TOKEN }}
+          X_ACCESS_SECRET: ${{ secrets.X_ACCESS_SECRET }}
+
+HOURS_ACTIVE: "00-15"            # UTC → 07–22 WIB
+POST_PER_RUN: "1"
+MIN_GAP_MINUTES: "20"
+MIN_GAP_SECONDS: "0"
+GAP_JITTER_SECONDS: "120"        # toleransi acak 0..120 detik di atas 20 menit
+MAX_REPLIES_PER_THREAD: "20"     # target 20 replies per thread
+CHUNK_DELAY_MIN_SECONDS: "15"
+CHUNK_DELAY_MAX_SECONDS: "45"
+MAX_TWEETS_PER_DAY: "30"         # buffer utk tweet yg terpecah (chunk)
+          # Optional bot configs
+          PARENT_TWEET_ID: ${{ secrets.PARENT_TWEET_ID }} # atau kosongkan & gunakan PARENT_TEXT
+          PARENT_TEXT: ${{ secrets.PARENT_TEXT }}
+          REPLIES_FILE: "replies.txt"
+          MAX_TWEETS_PER_DAY: "12"
+          MIN_GAP_MINUTES: "20"
+          POST_PER_RUN: "1"
+          HOURS_ACTIVE: "07-22"  # UTC; atur jam aktif biar natural
+          DRY_RUN: "0"
+          MAX_REPLIES_PER_THREAD: "8"
+          CHUNK_DELAY_MIN_SECONDS: "15"
+          CHUNK_DELAY_MAX_SECONDS: "45"
+        run: python bot.py
+      - name: Persist state (.state)
+        run: |
+          if [ -n "$(git status --porcelain .state || true)" ]; then
+            git config user.name "x-thread-bot"
+            git config user.email "actions@users.noreply.github.com"
+            git add .state || true
+            git commit -m "Update bot state [skip ci]" || true
+            git push || true
+          else
+            echo "No state changes to commit."
+          fi
