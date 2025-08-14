@@ -46,6 +46,7 @@ jobs:
           DRY_RUN: "0"
         run: python bot.py
 
+      # === FIX non-fast-forward & shell error ===
       - name: Persist state (.state)
         shell: bash
         env:
@@ -58,7 +59,6 @@ jobs:
             git config user.email "actions@users.noreply.github.com"
             git add .state || true
             git commit -m "Update bot state [rapid seconds] [skip ci]" || echo "Nothing to commit"
-
             git fetch origin "$BRANCH"
             git pull --rebase origin "$BRANCH" || true
             git push origin "HEAD:$BRANCH"
