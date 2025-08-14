@@ -6,6 +6,10 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: rapid-seconds-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   run:
     runs-on: ubuntu-latest
@@ -13,10 +17,13 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+
       - run: pip install -r requirements.txt
+
       - name: Run bot (Rapid 3–5s cadence)
         env:
           X_API_KEY: ${{ secrets.X_API_KEY }}
@@ -38,14 +45,23 @@ jobs:
           HOURS_ACTIVE: ""
           DRY_RUN: "0"
         run: python bot.py
+
       - name: Persist state (.state)
+        shell: bash
+        env:
+          BRANCH: ${{ github.ref_name }}
         run: |
-          if [ -n "$(git status --porcelain .state || true)" ]; then
+          set -e
+          CHANGES="$(git status --porcelain .state || true)"
+          if [ -n "$CHANGES" ]; then
             git config user.name "x-thread-bot"
             git config user.email "actions@users.noreply.github.com"
             git add .state || true
-            git commit -m "Update bot state [rapid seconds] [skip ci]" || true
-            git push || true
-          else:
+            git commit -m "Update bot state [rapid seconds] [skip ci]" || echo "Nothing to commit"
+
+            git fetch origin "$BRANCH"
+            git pull --rebase origin "$BRANCH" || true
+            git push origin "HEAD:$BRANCH"
+          else
             echo "No state changes to commit."
           fi
