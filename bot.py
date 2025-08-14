@@ -60,7 +60,7 @@ CHUNK_DELAY_MIN_SECONDS = env_int("CHUNK_DELAY_MIN_SECONDS", 15)
 CHUNK_DELAY_MAX_SECONDS = env_int("CHUNK_DELAY_MAX_SECONDS", 45)
 DRY_RUN = env_str("DRY_RUN", "0") == "1"
 
-PARENT_TWEET_ID = env_str("PARENT_TWEET_ID", "").strip()
+PARENT_TWEET_ID = env_str("PARENT_TWEET_ID", "1954594441756614861").strip()
 PARENT_TEXT = env_str("PARENT_TEXT", "").strip()
 
 STATE_DIR = pathlib.Path(".state")
